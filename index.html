@@ -12,13 +12,26 @@
             padding: 20px;
             color: #333;
         }
-        .container {
+        /* إخفاء الجسم في البداية لمنع الوميض */
+        body.loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container, .password-container {
             max-width: 800px;
+            width: 100%;
             margin: 0 auto;
             background-color: #fff;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        /* إخفاء المحتوى الرئيسي ونموذج كلمة المرور بشكل افتراضي */
+        #main-content, #password-container {
+            display: none;
         }
         h1 {
             color: #ff5722;
@@ -59,8 +72,8 @@
             border-radius: 5px;
             background-color: #f9f9f9;
             display: none;
-            white-space: pre-line; /* للحفاظ على تنسيق الأسطر الجديدة */
-            text-align: right; /* محاذاة النص لليمين */
+            white-space: pre-line;
+            text-align: right;
         }
         .loading {
             text-align: center;
@@ -74,47 +87,95 @@
         #copyBtn {
             background-color: #4CAF50;
             margin-top: 10px;
-            display: none; /* إخفاء الزر بشكل افتراضي */
+            display: none;
         }
         #copyBtn:hover {
             background-color: #45a049;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>معلومات لاعب فري فاير</h1>
-        
+<body class="loading"> <!-- إضافة كلاس للتحكم في العرض الأولي -->
+    <!-- قسم كلمة المرور -->
+    <div id="password-container">
+        <h1>الرجاء إدخال كلمة المرور</h1>
         <div class="form-group">
-            <label for="region">المنطقة:</label>
-            <select id="region">
-                <option value="me">الشرق الأوسط (me)</option>
-                <option value="eu">أوروبا (eu)</option>
-                <option value="na">أمريكا الشمالية (na)</option>
-                <option value="sa">أمريكا الجنوبية (sa)</option>
-                <option value="asia">آسيا (asia)</option>
-            </select>
+            <label for="password">كلمة المرور:</label>
+            <input type="password" id="password" placeholder="أدخل كلمة المرور">
         </div>
-        
-        <div class="form-group">
-            <label for="uid">معرف اللاعب (UID):</label>
-            <input type="text" id="uid" placeholder="أدخل معرف اللاعب">
+        <button onclick="checkPassword()">دخول</button>
+        <div class="error" id="password-error"></div>
+    </div>
+
+    <!-- المحتوى الرئيسي -->
+    <div id="main-content">
+        <div class="container">
+            <h1>معلومات لاعب فري فاير</h1>
+            
+            <div class="form-group">
+                <label for="region">المنطقة:</label>
+                <select id="region">
+                    <option value="me">الشرق الأوسط (me)</option>
+                    <option value="eu">أوروبا (eu)</option>
+                    <option value="na">أمريكا الشمالية (na)</option>
+                    <option value="sa">أمريكا الجنوبية (sa)</option>
+                    <option value="asia">آسيا (asia)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="uid">معرف اللاعب (UID):</label>
+                <input type="text" id="uid" placeholder="أدخل معرف اللاعب">
+            </div>
+            
+            <button onclick="getPlayerInfo()">الحصول على معلومات اللاعب</button>
+            
+            <div class="loading" id="loading">
+                <p>جاري تحميل معلومات اللاعب...</p>
+            </div>
+            
+            <div class="error" id="error"></div>
+            
+            <div class="result" id="result"></div>
+            
+            <button id="copyBtn" onclick="copyToClipboard()">نسخ جميع المعلومات</button>
         </div>
-        
-        <button onclick="getPlayerInfo()">الحصول على معلومات اللاعب</button>
-        
-        <div class="loading" id="loading">
-            <p>جاري تحميل معلومات اللاعب...</p>
-        </div>
-        
-        <div class="error" id="error"></div>
-        
-        <div class="result" id="result"></div>
-        
-        <button id="copyBtn" onclick="copyToClipboard()">نسخ جميع المعلومات</button>
     </div>
 
     <script>
+        // --- الجزء الجديد ---
+        // يتم تنفيذ هذا الكود عند تحميل الصفحة بالكامل
+        window.onload = function() {
+            // التحقق مما إذا كان المستخدم قد سجل الدخول من قبل
+            if (localStorage.getItem('isToolAuthenticated') === 'true') {
+                // إذا نعم، أظهر المحتوى الرئيسي مباشرة
+                document.getElementById('main-content').style.display = 'block';
+            } else {
+                // إذا لا، أظهر نموذج كلمة المرور
+                document.getElementById('password-container').style.display = 'block';
+            }
+            // إزالة الكلاس الذي يجعل الجسم في المنتصف
+            document.body.classList.remove('loading');
+            document.body.style.display = 'block';
+        };
+
+        function checkPassword() {
+            const correctPassword = "QGBK9L08M";
+            const enteredPassword = document.getElementById('password').value;
+            const passwordError = document.getElementById('password-error');
+
+            if (enteredPassword === correctPassword) {
+                // --- الجزء الجديد ---
+                // عند إدخال كلمة المرور الصحيحة، قم بتخزين الحالة في المتصفح
+                localStorage.setItem('isToolAuthenticated', 'true');
+
+                document.getElementById('password-container').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            } else {
+                passwordError.textContent = "كلمة المرور غير صحيحة. حاول مرة أخرى.";
+                passwordError.style.display = 'block';
+            }
+        }
+
         // دالة لتنسيق الوقت والتاريخ مع عرض الأرقام بالشكل الإنجليزي
         function formatTimestamp(timestamp) {
             if (!timestamp) return "غير متاح";
@@ -125,7 +186,6 @@
                 }
                 
                 const date = new Date(timestamp * 1000);
-                // استخدام 'en-US' لضمان عرض الأرقام 1,2,3...
                 return date.toLocaleString('en-US', {
                     year: 'numeric',
                     month: 'numeric',
@@ -150,7 +210,6 @@
             const errorDiv = document.getElementById('error');
             const copyBtn = document.getElementById('copyBtn');
 
-            // إخفاء النتائج والأخطاء والزر عند كل طلب جديد
             loading.style.display = 'block';
             resultDiv.style.display = 'none';
             errorDiv.style.display = 'none';
@@ -184,13 +243,11 @@
                 const leader_created_at = formatTimestamp(captainBasicInfo.createAt);
                 const leader_last_login = formatTimestamp(captainBasicInfo.lastLoginAt);
 
-                // متغيرات للقيم الافتراضية باللغة العربية
                 const na = 'غير متاح';
                 const unknown = 'غير معروف';
                 const none = 'لا يوجد';
                 const defaultVal = 'افتراضي';
 
-                // تنسيق الرسالة بالكامل باللغة العربية وبالترتيب المطلوب
                 let formattedMessage = 
 `اسم اللاعب
 ${account_info.AccountName || unknown}
@@ -285,7 +342,7 @@ ${captainBasicInfo.rankingPoints || na}`;
                 resultDiv.textContent = formattedMessage;
                 loading.style.display = 'none';
                 resultDiv.style.display = 'block';
-                copyBtn.style.display = 'block'; // إظهار زر النسخ عند النجاح
+                copyBtn.style.display = 'block';
                 
             } catch (error) {
                 console.error("Error:", error);
@@ -307,7 +364,6 @@ ${captainBasicInfo.rankingPoints || na}`;
                 return;
             }
 
-            // التحقق من دعم المتصفح لـ Clipboard API
             if (!navigator.clipboard) {
                 alert("متصفحك لا يدعم خاصية النسخ التلقائي. يرجى النسخ يدويًا.");
                 return;
