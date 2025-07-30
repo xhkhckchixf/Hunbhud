@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>معلومات لاعب فري فاير</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #ff5722;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #ff5722;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #e64a19;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            display: none;
+            white-space: pre-line; /* للحفاظ على تنسيق الأسطر الجديدة */
+            text-align: right; /* محاذاة النص لليمين */
+        }
+        .loading {
+            text-align: center;
+            display: none;
+        }
+        .error {
+            color: #f44336;
+            text-align: center;
+            display: none;
+        }
+        #copyBtn {
+            background-color: #4CAF50;
+            margin-top: 10px;
+            display: none; /* إخفاء الزر بشكل افتراضي */
+        }
+        #copyBtn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>معلومات لاعب فري فاير</h1>
+        
+        <div class="form-group">
+            <label for="region">المنطقة:</label>
+            <select id="region">
+                <option value="me">الشرق الأوسط (me)</option>
+                <option value="eu">أوروبا (eu)</option>
+                <option value="na">أمريكا الشمالية (na)</option>
+                <option value="sa">أمريكا الجنوبية (sa)</option>
+                <option value="asia">آسيا (asia)</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="uid">معرف اللاعب (UID):</label>
+            <input type="text" id="uid" placeholder="أدخل معرف اللاعب">
+        </div>
+        
+        <button onclick="getPlayerInfo()">الحصول على معلومات اللاعب</button>
+        
+        <div class="loading" id="loading">
+            <p>جاري تحميل معلومات اللاعب...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result"></div>
+        
+        <button id="copyBtn" onclick="copyToClipboard()">نسخ جميع المعلومات</button>
+    </div>
+
+    <script>
+        // دالة لتنسيق الوقت والتاريخ مع عرض الأرقام بالشكل الإنجليزي
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return "غير متاح";
+            
+            try {
+                if (typeof timestamp === 'string' && timestamp.match(/^\d+$/)) {
+                    timestamp = parseInt(timestamp);
+                }
+                
+                const date = new Date(timestamp * 1000);
+                // استخدام 'en-US' لضمان عرض الأرقام 1,2,3...
+                return date.toLocaleString('en-US', {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                }).replace(/,/g, '');
+            } catch (e) {
+                console.error("Timestamp error:", e);
+                return "غير متاح";
+            }
+        }
+
+        async function getPlayerInfo() {
+            const region = document.getElementById('region').value;
+            const uid = document.getElementById('uid').value.trim();
+            
+            const loading = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+            const copyBtn = document.getElementById('copyBtn');
+
+            // إخفاء النتائج والأخطاء والزر عند كل طلب جديد
+            loading.style.display = 'block';
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            copyBtn.style.display = 'none';
+
+            if (!uid) {
+                showError("الرجاء إدخال معرف اللاعب (UID)");
+                loading.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const infoUrl = `https://ffwlxd-info.vercel.app/player-info?region=${region}&uid=${uid}`;
+                const response = await fetch(infoUrl);
+                
+                if (!response.ok) {
+                    throw new Error("خطأ في جلب البيانات. يرجى التحقق من معرف اللاعب والمنطقة.");
+                }
+                
+                const profileData = await response.json();
+                
+                const account_info = profileData.AccountInfo || {};
+                const social_info = profileData.socialinfo || {};
+                const guild_info = profileData.GuildInfo || {};
+                const pet_info = profileData.petInfo || {};
+                const credit_score_info = profileData.creditScoreInfo || {};
+                const captainBasicInfo = profileData.captainBasicInfo || {};
+                
+                const created_at = formatTimestamp(account_info.AccountCreateTime);
+                const last_login = formatTimestamp(account_info.AccountLastLogin);
+                const leader_created_at = formatTimestamp(captainBasicInfo.createAt);
+                const leader_last_login = formatTimestamp(captainBasicInfo.lastLoginAt);
+
+                // متغيرات للقيم الافتراضية باللغة العربية
+                const na = 'غير متاح';
+                const unknown = 'غير معروف';
+                const none = 'لا يوجد';
+                const defaultVal = 'افتراضي';
+
+                // تنسيق الرسالة بالكامل باللغة العربية وبالترتيب المطلوب
+                let formattedMessage = 
+`اسم اللاعب
+${account_info.AccountName || unknown}
+
+معرف اللاعب (UID)
+${uid}
+
+--- المعلومات الأساسية ---
+
+المستوى
+${account_info.AccountLevel || na} (الخبرة: ${account_info.AccountEXP || na})
+
+الإعجابات
+${account_info.AccountLikes || na}
+
+نقاط الشرف
+${credit_score_info.creditScore || na}
+
+الوصف
+${social_info.AccountSignature || none}
+
+--- النشاط ---
+
+إصدار اللعبة
+${account_info.ReleaseVersion || na}
+
+بوياه باس
+${account_info.hasElitePass === 'true' ? 'نعم' : 'لا'}
+
+تصنيف باتل رويال
+${account_info.BrRankPoint || na}
+
+تصنيف كلاش سكواد
+${account_info.CsRankPoint || na}
+
+تاريخ إنشاء الحساب
+${created_at}
+
+آخر تسجيل دخول
+${last_login}
+
+--- المظهر ---
+
+الصورة الرمزية
+${account_info.AccountAvatarId || defaultVal}
+
+اللافتة
+${account_info.AccountBannerId || defaultVal}
+
+--- الحيوان الأليف ---
+
+نشط
+${pet_info.isSelected === 'true' ? 'نعم' : 'لا'}
+
+الاسم
+${pet_info.name || unknown}
+
+المستوى
+${pet_info.level || na}
+
+--- النقابة ---
+
+اسم النقابة
+${guild_info.GuildName || na}
+
+مستوى النقابة
+${guild_info.GuildLevel || na}
+
+عدد الأعضاء
+${guild_info.GuildMember || na}
+
+--- الكابتن ---
+
+الاسم
+${captainBasicInfo.nickname || na}
+
+معرف اللاعب (UID)
+${captainBasicInfo.accountId || na}
+
+المستوى
+${captainBasicInfo.level || na}
+
+تاريخ الإنشاء
+${leader_created_at}
+
+آخر تسجيل دخول
+${leader_last_login}
+
+نقاط باتل رويال
+${captainBasicInfo.rankingPoints || na}`;
+
+                resultDiv.textContent = formattedMessage;
+                loading.style.display = 'none';
+                resultDiv.style.display = 'block';
+                copyBtn.style.display = 'block'; // إظهار زر النسخ عند النجاح
+                
+            } catch (error) {
+                console.error("Error:", error);
+                showError(error.message);
+                loading.style.display = 'none';
+            }
+        }
+        
+        function showError(message) {
+            const errorElement = document.getElementById('error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+        
+        function copyToClipboard() {
+            const resultText = document.getElementById('result').textContent;
+            if (!resultText) {
+                alert("لا توجد معلومات لنسخها.");
+                return;
+            }
+
+            // التحقق من دعم المتصفح لـ Clipboard API
+            if (!navigator.clipboard) {
+                alert("متصفحك لا يدعم خاصية النسخ التلقائي. يرجى النسخ يدويًا.");
+                return;
+            }
+            
+            navigator.clipboard.writeText(resultText).then(() => {
+                alert("تم نسخ المعلومات بنجاح إلى الحافظة!");
+            }).catch(err => {
+                console.error("خطأ في النسخ:", err);
+                alert("فشل النسخ إلى الحافظة. قد يتطلب متصفحك تشغيل الصفحة على خادم آمن (https) للسماح بالنسخ. الرجاء محاولة النسخ يدويًا.");
+            });
+        }
+    </script>
+</body>
+</html>
